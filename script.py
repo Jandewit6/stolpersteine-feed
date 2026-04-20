@@ -5,8 +5,11 @@ import hashlib
 import json
 import os
 import html
+import xml.etree.ElementTree as ET
 
 ARCHIVE_FILE = "archive.json"
+FEED_FILE = "feed.xml"
+BACKUP_FILE = "feed_backup.xml"
 MAX_DAYS = 365
 
 FEEDS = [
@@ -32,7 +35,7 @@ STRICT_SCORE = 5
 FALLBACK_SCORE = 2
 
 
-# 🔍 score berekening
+# 🔍 scoring
 def score(text):
     text = text.lower()
     s = sum(v for k, v in CONTEXT.items() if k in text)
@@ -40,32 +43,60 @@ def score(text):
     return s
 
 
-# 🧹 XML-veilige tekst
+# 🧹 ULTRA ROBUST CLEAN
 def clean(text):
-    # verwijder HTML tags
+    if not text:
+        return ""
+
     text = re.sub("<.*?>", "", text)
 
-    # decode HTML entities (&nbsp; etc.)
-    text = html.unescape(text)
+    for _ in range(2):
+        text = html.unescape(text)
 
-    # verwijder rare control chars
+    text = re.sub(r"&[a-zA-Z0-9#]+;", " ", text)
     text = re.sub(r"[\x00-\x1F\x7F]", "", text)
 
-    # maak XML-safe
     text = text.replace("&", "&amp;")
     text = text.replace("<", "").replace(">", "")
 
-    text = text.replace("\n", " ").strip()
+    text = re.sub(r"\s+", " ", text).strip()
 
     return text[:500]
 
 
-# 🔐 unieke id
+# 🧠 BETERE SAMENVATTING
+def summarize(text):
+    text = clean(text)
+
+    sentences = re.split(r'(?<=[.!?]) +', text)
+
+    cleaned = []
+    for s in sentences:
+        s_lower = s.lower()
+
+        if any(x in s_lower for x in [
+            "read more", "click here", "subscribe",
+            "advertisement", "cookie", "privacy"
+        ]):
+            continue
+
+        if len(s.strip()) < 40:
+            continue
+
+        cleaned.append(s.strip())
+
+    summary = " ".join(cleaned[:2])
+
+    if not summary:
+        summary = text[:200]
+
+    return summary
+
+
 def make_id(title, link):
     return hashlib.md5((title + link).lower().encode()).hexdigest()
 
 
-# 📂 archief laden
 def load_archive():
     if not os.path.exists(ARCHIVE_FILE):
         return []
@@ -73,13 +104,11 @@ def load_archive():
         return json.load(f)
 
 
-# 💾 archief opslaan
 def save_archive(data):
     with open(ARCHIVE_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
 
-# 📥 ophalen
 def fetch():
     items = []
 
@@ -98,14 +127,13 @@ def fetch():
                 "id": make_id(title, link),
                 "title": clean(title),
                 "link": link,
-                "description": clean(summary),
+                "description": summarize(summary),
                 "pubDate": datetime(*e.published_parsed[:6]).isoformat()
             })
 
     return items
 
 
-# 🎯 filtering
 def filter_items(items, min_score):
     out = []
 
@@ -121,7 +149,6 @@ def filter_items(items, min_score):
     return out
 
 
-# 🗂 archief updaten
 def update_archive(new_items, archive):
     existing_links = {i["link"] for i in archive}
 
@@ -139,7 +166,7 @@ def update_archive(new_items, archive):
     return archive
 
 
-# 📡 RSS bouwen
+# 📡 RSS bouwen met CDATA
 def build_rss(items):
     rss_items = ""
 
@@ -150,9 +177,9 @@ def build_rss(items):
 
         rss_items += f"""
         <item>
-          <title>{i['title']}</title>
+          <title><![CDATA[{i['title']}]]></title>
           <link>{i['link']}</link>
-          <description>{i['description']}</description>
+          <description><![CDATA[{i['description']}]]></description>
           <pubDate>{pubdate}</pubDate>
         </item>
         """
@@ -162,48 +189,65 @@ def build_rss(items):
 <channel>
 <title>Stolpersteine News</title>
 <link>https://YOUR_USERNAME.github.io/stolpersteine-feed/</link>
-<description>Fallback-proof Stolpersteine RSS (WWII context)</description>
+<description>Validated Stolpersteine RSS (WWII context)</description>
 {rss_items}
 </channel>
 </rss>
 """
 
 
-# ▶️ main
+# 🧪 XML VALIDATOR
+def is_valid_xml(xml_string):
+    try:
+        ET.fromstring(xml_string)
+        return True
+    except Exception as e:
+        print("XML ERROR:", e)
+        return False
+
+
 def main():
     archive = load_archive()
     fetched = fetch()
 
     print(f"Fetched: {len(fetched)} items")
 
-    # 🧠 strikt
     strict = filter_items(fetched, STRICT_SCORE)
-    print(f"Strict: {len(strict)}")
+    fallback = filter_items(fetched, FALLBACK_SCORE)
 
     if strict:
         selected = strict
+    elif fallback:
+        selected = fallback
     else:
-        # ⚠️ fallback
-        fallback = filter_items(fetched, FALLBACK_SCORE)
-        print(f"Fallback: {len(fallback)}")
-
-        if fallback:
-            selected = fallback
-        else:
-            # 🧯 laatste redmiddel
-            print("Using last resort (no filter)")
-            selected = fetched[:20]
+        print("Using last resort")
+        selected = fetched[:20]
 
     archive = update_archive(selected, archive)
-
     archive.sort(key=lambda x: x["pubDate"], reverse=True)
 
     save_archive(archive)
 
-    rss = build_rss(archive)
+    new_rss = build_rss(archive)
 
-    with open("feed.xml", "w", encoding="utf-8") as f:
-        f.write(rss)
+    # 🧪 VALIDATIE
+    if is_valid_xml(new_rss):
+        print("XML valid ✅")
+
+        # backup oude feed
+        if os.path.exists(FEED_FILE):
+            os.replace(FEED_FILE, BACKUP_FILE)
+
+        with open(FEED_FILE, "w", encoding="utf-8") as f:
+            f.write(new_rss)
+
+    else:
+        print("XML invalid ❌ restoring backup")
+
+        if os.path.exists(BACKUP_FILE):
+            os.replace(BACKUP_FILE, FEED_FILE)
+        else:
+            print("No backup available!")
 
 
 if __name__ == "__main__":
