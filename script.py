@@ -5,14 +5,11 @@ import hashlib
 import json
 import os
 import html
-import xml.etree.ElementTree as ET
+import traceback
 
 ARCHIVE_FILE = "archive.json"
 FEED_FILE = "feed.xml"
-BACKUP_FILE = "feed_backup.xml"
 MAX_DAYS = 365
-
-FEED_URL_SELF = "https://jandewit6.github.io/stolpersteine-feed/feed.xml"
 
 FEEDS = [
     "https://news.google.com/rss/search?q=stolpersteine&hl=en&gl=US&ceid=US:en",
@@ -22,30 +19,19 @@ FEEDS = [
     "https://stolpersteinecz.cz/en/feed/"
 ]
 
-CONTEXT = {
-    "holocaust": 3, "shoah": 3,
-    "nazi": 3, "world war ii": 3,
-    "wwii": 3, "auschwitz": 3,
-    "deport": 2, "jew": 2,
-    "victim": 2, "memorial": 2,
-    "commemoration": 2, "persecution": 2
-}
-
-NEGATIVE = ["football", "club", "restaurant", "music"]
-
 STRICT_SCORE = 5
 FALLBACK_SCORE = 2
 
 
-# 🔍 SCORING
+# 🔍 score
 def score(text):
     text = text.lower()
-    s = sum(v for k, v in CONTEXT.items() if k in text)
-    s -= sum(3 for w in NEGATIVE if w in text)
+    keywords = ["holocaust", "nazi", "wwii", "auschwitz", "deport", "jew", "victim"]
+    s = sum(2 for k in keywords if k in text)
     return s
 
 
-# 🧹 CLEAN (XML-safe)
+# 🧹 clean (XML safe)
 def clean(text):
     if not text:
         return ""
@@ -64,40 +50,19 @@ def clean(text):
     return text[:500]
 
 
-# 🧠 SAMENVATTING
+# 🧠 samenvatting
 def summarize(text):
     text = clean(text)
     sentences = re.split(r'(?<=[.!?]) +', text)
-
-    cleaned = []
-    for s in sentences:
-        s_lower = s.lower()
-
-        if any(x in s_lower for x in [
-            "read more", "click here", "subscribe",
-            "advertisement", "cookie", "privacy"
-        ]):
-            continue
-
-        if len(s.strip()) < 40:
-            continue
-
-        cleaned.append(s.strip())
-
-    summary = " ".join(cleaned[:2])
-
-    if not summary:
-        summary = text[:200]
-
-    return summary
+    return " ".join(sentences[:2])[:300]
 
 
-# 🔐 GUID
-def make_guid(link):
+# 🔐 id
+def make_id(link):
     return hashlib.md5(link.encode()).hexdigest()
 
 
-# 📂 ARCHIEF
+# 📂 archief
 def load_archive():
     if not os.path.exists(ARCHIVE_FILE):
         return []
@@ -110,40 +75,52 @@ def save_archive(data):
         json.dump(data, f, ensure_ascii=False, indent=2)
 
 
-# 📥 FETCH MET JUISTE DATUM
+# 📥 fetch
 def fetch():
     items = []
 
     for url in FEEDS:
+        print("Fetching:", url)
         feed = feedparser.parse(url)
 
         for e in feed.entries:
-            if not e.get("link"):
+            try:
+                link = e.get("link")
+                if not link:
+                    continue
+
+                title = clean(e.get("title", ""))
+                summary = summarize(e.get("summary", ""))
+
+                # 🧠 pubdate fix
+                pub = None
+                if hasattr(e, "published_parsed") and e.published_parsed:
+                    pub = e.published_parsed
+                elif hasattr(e, "updated_parsed") and e.updated_parsed:
+                    pub = e.updated_parsed
+
+                if pub:
+                    pub_iso = datetime(*pub[:6]).isoformat()
+                else:
+                    pub_iso = datetime.utcnow().isoformat()
+
+                items.append({
+                    "id": make_id(link),
+                    "title": title,
+                    "link": link,
+                    "description": summary,
+                    "pubDate": pub_iso
+                })
+
+            except Exception as e:
+                print("❌ Item error:", e)
                 continue
 
-            title = clean(e.get("title", ""))
-            summary = summarize(e.get("summary", ""))
-            link = e.get("link")
-
-            pub = e.get("published_parsed") or e.get("updated_parsed")
-
-            if pub:
-                pub_iso = datetime(*pub[:6]).isoformat()
-            else:
-                pub_iso = datetime.utcnow().isoformat()
-
-            items.append({
-                "guid": make_guid(link),
-                "title": title,
-                "link": link,
-                "description": summary,
-                "pubDate": pub_iso
-            })
-
+    print("Fetched total:", len(items))
     return items
 
 
-# 🎯 FILTER
+# 🎯 filter
 def filter_items(items, min_score):
     out = []
 
@@ -159,7 +136,7 @@ def filter_items(items, min_score):
     return out
 
 
-# 🗂 ARCHIEF UPDATE
+# 🗂 archief update
 def update_archive(new_items, archive):
     existing = {i["link"] for i in archive}
 
@@ -177,20 +154,25 @@ def update_archive(new_items, archive):
     return archive
 
 
-# 📡 RSS BUILD (PERFECT)
+# 📡 RSS build (veilig)
 def build_rss(items):
     rss_items = ""
 
     for i in items[:30]:
-        pubdate = datetime.fromisoformat(i["pubDate"]).strftime(
-            "%a, %d %b %Y %H:%M:%S GMT"
-        )
+        try:
+            pubdate = datetime.fromisoformat(i["pubDate"]).strftime(
+                "%a, %d %b %Y %H:%M:%S GMT"
+            )
+        except:
+            pubdate = datetime.utcnow().strftime(
+                "%a, %d %b %Y %H:%M:%S GMT"
+            )
 
         rss_items += f"""
         <item>
           <title><![CDATA[{i['title']}]]></title>
           <link>{i['link']}</link>
-          <guid isPermaLink="false">{i['guid']}</guid>
+          <guid>{i['id']}</guid>
           <description><![CDATA[{i['description']}]]></description>
           <pubDate>{pubdate}</pubDate>
         </item>
@@ -199,34 +181,19 @@ def build_rss(items):
     build_time = datetime.utcnow().strftime("%a, %d %b %Y %H:%M:%S GMT")
 
     return f"""<?xml version="1.0" encoding="UTF-8"?>
-<rss version="2.0"
-     xmlns:atom="http://www.w3.org/2005/Atom">
+<rss version="2.0">
 <channel>
 <title>Stolpersteine News</title>
 <link>https://jandewit6.github.io/stolpersteine-feed/</link>
-<description>Worldwide Stolpersteine news (WWII context)</description>
-<language>en</language>
+<description>WWII-related Stolpersteine news</description>
 <lastBuildDate>{build_time}</lastBuildDate>
-<atom:link href="{FEED_URL_SELF}" rel="self" type="application/rss+xml"/>
-
 {rss_items}
-
 </channel>
 </rss>
 """
 
 
-# 🧪 VALIDATOR
-def is_valid_xml(xml_string):
-    try:
-        ET.fromstring(xml_string)
-        return True
-    except Exception as e:
-        print("XML ERROR:", e)
-        return False
-
-
-# ▶️ MAIN
+# ▶️ main
 def main():
     archive = load_archive()
     fetched = fetch()
@@ -239,6 +206,7 @@ def main():
     elif fallback:
         selected = fallback
     else:
+        print("⚠️ fallback: using raw items")
         selected = fetched[:20]
 
     archive = update_archive(selected, archive)
@@ -246,18 +214,19 @@ def main():
 
     save_archive(archive)
 
-    new_rss = build_rss(archive)
+    rss = build_rss(archive)
 
-    if is_valid_xml(new_rss):
-        if os.path.exists(FEED_FILE):
-            os.replace(FEED_FILE, BACKUP_FILE)
+    with open(FEED_FILE, "w", encoding="utf-8") as f:
+        f.write(rss)
 
-        with open(FEED_FILE, "w", encoding="utf-8") as f:
-            f.write(new_rss)
-    else:
-        if os.path.exists(BACKUP_FILE):
-            os.replace(BACKUP_FILE, FEED_FILE)
+    print("✅ feed.xml written")
 
 
+# 🧪 debug wrapper
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        print("❌ FATAL ERROR:", e)
+        traceback.print_exc()
+        raise
