@@ -24,10 +24,10 @@ jobs:
       - name: Run script
         run: python script.py
 
-      - name: Commit & push
-        run: |
-          git config --global user.name "bot"
-          git config --global user.email "bot@example.com"
-          git add feed.xml archive.json
-          git commit -m "update feed" || echo "no changes"
-          git push
+- name: Commit & push
+  run: |
+    git config --global user.name "bot"
+    git config --global user.email "bot@example.com"
+    git add -A
+    git commit -m "update $(date)" || echo "no changes"
+    git push
