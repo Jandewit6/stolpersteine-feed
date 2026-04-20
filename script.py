@@ -1,5 +1,5 @@
 import feedparser
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import re
 import hashlib
 import json
@@ -61,12 +61,20 @@ def make_id(link):
     return hashlib.md5(link.encode()).hexdigest()
 
 
-# 📂 archief
+# 📂 archief (FIXED)
 def load_archive():
     if not os.path.exists(ARCHIVE_FILE):
         return []
-    with open(ARCHIVE_FILE, "r", encoding="utf-8") as f:
-        return json.load(f)
+
+    try:
+        with open(ARCHIVE_FILE, "r", encoding="utf-8") as f:
+            content = f.read().strip()
+            if not content:
+                return []
+            return json.loads(content)
+    except json.JSONDecodeError:
+        print("⚠️ archive.json is leeg of corrupt → reset")
+        return []
 
 
 def save_archive(data):
@@ -99,9 +107,11 @@ def fetch():
                     pub = e.updated_parsed
 
                 if pub:
-                    pub_iso = datetime(*pub[:6]).isoformat()
+                    dt = datetime(*pub[:6], tzinfo=timezone.utc)
                 else:
-                    pub_iso = datetime.utcnow().isoformat()
+                    dt = datetime.now(timezone.utc)
+
+                pub_iso = dt.isoformat()
 
                 items.append({
                     "id": make_id(link),
@@ -143,7 +153,7 @@ def update_archive(new_items, archive):
         if item["link"] not in existing:
             archive.append(item)
 
-    cutoff = datetime.utcnow() - timedelta(days=MAX_DAYS)
+    cutoff = datetime.now(timezone.utc) - timedelta(days=MAX_DAYS)
 
     cleaned_archive = []
     for i in archive:
@@ -151,8 +161,14 @@ def update_archive(new_items, archive):
             if "id" not in i:
                 i["id"] = make_id(i["link"])
 
-            if datetime.fromisoformat(i["pubDate"]) > cutoff:
+            dt = datetime.fromisoformat(i["pubDate"])
+
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+
+            if dt > cutoff:
                 cleaned_archive.append(i)
+
         except Exception as e:
             print("❌ Archive item skipped:", e)
 
@@ -165,15 +181,17 @@ def build_rss(items):
 
     for i in items[:30]:
         try:
-            pubdate = datetime.fromisoformat(i["pubDate"]).strftime(
-                "%a, %d %b %Y %H:%M:%S GMT"
-            )
+            dt = datetime.fromisoformat(i["pubDate"])
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+
+            pubdate = dt.strftime("%a, %d %b %Y %H:%M:%S GMT")
+
         except:
-            pubdate = datetime.utcnow().strftime(
+            pubdate = datetime.now(timezone.utc).strftime(
                 "%a, %d %b %Y %H:%M:%S GMT"
             )
 
-        # 🔥 FIX: altijd guid beschikbaar
         guid = i.get("id") or make_id(i["link"])
 
         rss_items += f"""
@@ -186,7 +204,7 @@ def build_rss(items):
         </item>
         """
 
-    build_time = datetime.utcnow().strftime("%a, %d %b %Y %H:%M:%S GMT")
+    build_time = datetime.now(timezone.utc).strftime("%a, %d %b %Y %H:%M:%S GMT")
 
     return f"""<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0">
