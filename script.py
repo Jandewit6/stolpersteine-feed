@@ -27,8 +27,7 @@ FALLBACK_SCORE = 2
 def score(text):
     text = text.lower()
     keywords = ["holocaust", "nazi", "wwii", "auschwitz", "deport", "jew", "victim"]
-    s = sum(2 for k in keywords if k in text)
-    return s
+    return sum(2 for k in keywords if k in text)
 
 
 # 🧹 clean (XML safe)
@@ -92,7 +91,7 @@ def fetch():
                 title = clean(e.get("title", ""))
                 summary = summarize(e.get("summary", ""))
 
-                # 🧠 pubdate fix
+                # pubdate
                 pub = None
                 if hasattr(e, "published_parsed") and e.published_parsed:
                     pub = e.published_parsed
@@ -138,7 +137,7 @@ def filter_items(items, min_score):
 
 # 🗂 archief update
 def update_archive(new_items, archive):
-    existing = {i["link"] for i in archive}
+    existing = {i.get("link") for i in archive}
 
     for item in new_items:
         if item["link"] not in existing:
@@ -146,15 +145,21 @@ def update_archive(new_items, archive):
 
     cutoff = datetime.utcnow() - timedelta(days=MAX_DAYS)
 
-    archive = [
-        i for i in archive
-        if datetime.fromisoformat(i["pubDate"]) > cutoff
-    ]
+    cleaned_archive = []
+    for i in archive:
+        try:
+            if "id" not in i:
+                i["id"] = make_id(i["link"])
 
-    return archive
+            if datetime.fromisoformat(i["pubDate"]) > cutoff:
+                cleaned_archive.append(i)
+        except Exception as e:
+            print("❌ Archive item skipped:", e)
+
+    return cleaned_archive
 
 
-# 📡 RSS build (veilig)
+# 📡 RSS build
 def build_rss(items):
     rss_items = ""
 
@@ -168,11 +173,14 @@ def build_rss(items):
                 "%a, %d %b %Y %H:%M:%S GMT"
             )
 
+        # 🔥 FIX: altijd guid beschikbaar
+        guid = i.get("id") or make_id(i["link"])
+
         rss_items += f"""
         <item>
           <title><![CDATA[{i['title']}]]></title>
           <link>{i['link']}</link>
-          <guid>{i['id']}</guid>
+          <guid>{guid}</guid>
           <description><![CDATA[{i['description']}]]></description>
           <pubDate>{pubdate}</pubDate>
         </item>
