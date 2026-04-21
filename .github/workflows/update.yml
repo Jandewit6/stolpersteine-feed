@@ -25,13 +25,12 @@ jobs:
         run: pip install feedparser
 
       - name: Run script
-        run: |
-          python script.py
+        run: python script.py
 
       - name: Commit and push changes
         run: |
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
           git add -A
-          git commit -m "Auto update $(date)" || echo "No changes to commit"
+          git commit -m "Auto update $(date)" || echo "No changes"
           git push
