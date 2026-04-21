@@ -1,5 +1,5 @@
 import feedparser
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 import re
 import hashlib
 import json
@@ -14,23 +14,52 @@ MAX_DAYS = 365
 FEEDS = [
     "https://news.google.com/rss/search?q=stolpersteine&hl=en&gl=US&ceid=US:en",
     "https://news.google.com/rss/search?q=stolpersteine&hl=de&gl=DE&ceid=DE:de",
-    "https://news.google.com/rss/search?q=stolpersteine&hl=it&gl=IT&ceid=IT:it",
     "https://www.stolpersteine.eu/feed/",
     "https://stolpersteinecz.cz/en/feed/"
 ]
 
-STRICT_SCORE = 5
-FALLBACK_SCORE = 2
+# 🧠 locatie herkenning
+KNOWN_CITIES = {
+    "zutphen": "Netherlands",
+    "amsterdam": "Netherlands",
+    "rotterdam": "Netherlands",
+    "utrecht": "Netherlands",
+    "arnhem": "Netherlands",
+    "deventer": "Netherlands",
+    "nijmegen": "Netherlands",
+    "berlin": "Germany",
+    "hamburg": "Germany",
+    "vienna": "Austria",
+    "prague": "Czech Republic",
+    "rome": "Italy"
+}
 
 
-# 🔍 score
-def score(text):
-    text = text.lower()
-    keywords = ["holocaust", "nazi", "wwii", "auschwitz", "deport", "jew", "victim"]
-    return sum(2 for k in keywords if k in text)
+def extract_location(text):
+    original = text
+    text_lower = " " + text.lower() + " "
+
+    for city, country in KNOWN_CITIES.items():
+        if f" {city} " in text_lower:
+            return city.title(), country
+
+    match = re.search(r"\bin ([A-Z][a-zA-Z\-]+)", original)
+    if match:
+        return match.group(1), "Unknown"
+
+    match = re.search(r"\b(?:in|near|from) ([A-Z][a-zA-Z\-]+)", original)
+    if match:
+        return match.group(1), "Unknown"
+
+    words = original.split()
+    for w in words:
+        if len(w) > 4 and w[0].isupper():
+            if w.lower() not in ["stolpersteine", "holocaust", "nazi"]:
+                return w, "Unknown"
+
+    return "Unknown", "Unknown"
 
 
-# 🧹 clean (XML safe)
 def clean(text):
     if not text:
         return ""
@@ -49,32 +78,21 @@ def clean(text):
     return text[:500]
 
 
-# 🧠 samenvatting
 def summarize(text):
     text = clean(text)
     sentences = re.split(r'(?<=[.!?]) +', text)
     return " ".join(sentences[:2])[:300]
 
 
-# 🔐 id
 def make_id(link):
     return hashlib.md5(link.encode()).hexdigest()
 
 
-# 📂 archief (FIXED)
 def load_archive():
     if not os.path.exists(ARCHIVE_FILE):
         return []
-
-    try:
-        with open(ARCHIVE_FILE, "r", encoding="utf-8") as f:
-            content = f.read().strip()
-            if not content:
-                return []
-            return json.loads(content)
-    except json.JSONDecodeError:
-        print("⚠️ archive.json is leeg of corrupt → reset")
-        return []
+    with open(ARCHIVE_FILE, "r", encoding="utf-8") as f:
+        return json.load(f)
 
 
 def save_archive(data):
@@ -82,12 +100,10 @@ def save_archive(data):
         json.dump(data, f, ensure_ascii=False, indent=2)
 
 
-# 📥 fetch
 def fetch():
     items = []
 
     for url in FEEDS:
-        print("Fetching:", url)
         feed = feedparser.parse(url)
 
         for e in feed.entries:
@@ -99,53 +115,31 @@ def fetch():
                 title = clean(e.get("title", ""))
                 summary = summarize(e.get("summary", ""))
 
-                # pubdate
-                pub = None
-                if hasattr(e, "published_parsed") and e.published_parsed:
-                    pub = e.published_parsed
-                elif hasattr(e, "updated_parsed") and e.updated_parsed:
-                    pub = e.updated_parsed
+                city, country = extract_location(title + " " + summary)
+
+                pub = e.get("published_parsed") or e.get("updated_parsed")
 
                 if pub:
-                    dt = datetime(*pub[:6], tzinfo=timezone.utc)
+                    pub_iso = datetime(*pub[:6]).isoformat()
                 else:
-                    dt = datetime.now(timezone.utc)
-
-                pub_iso = dt.isoformat()
+                    pub_iso = datetime.utcnow().isoformat()
 
                 items.append({
                     "id": make_id(link),
                     "title": title,
                     "link": link,
                     "description": summary,
-                    "pubDate": pub_iso
+                    "pubDate": pub_iso,
+                    "city": city,
+                    "country": country
                 })
 
             except Exception as e:
-                print("❌ Item error:", e)
-                continue
+                print("item error:", e)
 
-    print("Fetched total:", len(items))
     return items
 
 
-# 🎯 filter
-def filter_items(items, min_score):
-    out = []
-
-    for i in items:
-        text = (i["title"] + " " + i["description"]).lower()
-
-        if "stolperstein" not in text:
-            continue
-
-        if score(text) >= min_score:
-            out.append(i)
-
-    return out
-
-
-# 🗂 archief update
 def update_archive(new_items, archive):
     existing = {i.get("link") for i in archive}
 
@@ -153,65 +147,51 @@ def update_archive(new_items, archive):
         if item["link"] not in existing:
             archive.append(item)
 
-    cutoff = datetime.now(timezone.utc) - timedelta(days=MAX_DAYS)
+    cutoff = datetime.utcnow() - timedelta(days=MAX_DAYS)
 
-    cleaned_archive = []
-    for i in archive:
-        try:
-            if "id" not in i:
-                i["id"] = make_id(i["link"])
-
-            dt = datetime.fromisoformat(i["pubDate"])
-
-            if dt.tzinfo is None:
-                dt = dt.replace(tzinfo=timezone.utc)
-
-            if dt > cutoff:
-                cleaned_archive.append(i)
-
-        except Exception as e:
-            print("❌ Archive item skipped:", e)
-
-    return cleaned_archive
+    return [
+        i for i in archive
+        if datetime.fromisoformat(i["pubDate"]) > cutoff
+    ]
 
 
-# 📡 RSS build
 def build_rss(items):
     rss_items = ""
 
     for i in items[:30]:
         try:
-            dt = datetime.fromisoformat(i["pubDate"])
-            if dt.tzinfo is None:
-                dt = dt.replace(tzinfo=timezone.utc)
-
-            pubdate = dt.strftime("%a, %d %b %Y %H:%M:%S GMT")
-
+            pubdate = datetime.fromisoformat(i["pubDate"]).strftime(
+                "%a, %d %b %Y %H:%M:%S GMT"
+            )
         except:
-            pubdate = datetime.now(timezone.utc).strftime(
+            pubdate = datetime.utcnow().strftime(
                 "%a, %d %b %Y %H:%M:%S GMT"
             )
 
         guid = i.get("id") or make_id(i["link"])
+
+        location = f"{i['city']}, {i['country']}" if i["city"] != "Unknown" else "Unknown"
+
+        description = f"{i['description']} (Location: {location})"
 
         rss_items += f"""
         <item>
           <title><![CDATA[{i['title']}]]></title>
           <link>{i['link']}</link>
           <guid>{guid}</guid>
-          <description><![CDATA[{i['description']}]]></description>
+          <description><![CDATA[{description}]]></description>
           <pubDate>{pubdate}</pubDate>
         </item>
         """
 
-    build_time = datetime.now(timezone.utc).strftime("%a, %d %b %Y %H:%M:%S GMT")
+    build_time = datetime.utcnow().strftime("%a, %d %b %Y %H:%M:%S GMT")
 
     return f"""<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0">
 <channel>
 <title>Stolpersteine News</title>
 <link>https://jandewit6.github.io/stolpersteine-feed/</link>
-<description>WWII-related Stolpersteine news</description>
+<description>Stolpersteine news with locations</description>
 <lastBuildDate>{build_time}</lastBuildDate>
 {rss_items}
 </channel>
@@ -219,23 +199,11 @@ def build_rss(items):
 """
 
 
-# ▶️ main
 def main():
     archive = load_archive()
     fetched = fetch()
 
-    strict = filter_items(fetched, STRICT_SCORE)
-    fallback = filter_items(fetched, FALLBACK_SCORE)
-
-    if strict:
-        selected = strict
-    elif fallback:
-        selected = fallback
-    else:
-        print("⚠️ fallback: using raw items")
-        selected = fetched[:20]
-
-    archive = update_archive(selected, archive)
+    archive = update_archive(fetched, archive)
     archive.sort(key=lambda x: x["pubDate"], reverse=True)
 
     save_archive(archive)
@@ -245,14 +213,11 @@ def main():
     with open(FEED_FILE, "w", encoding="utf-8") as f:
         f.write(rss)
 
-    print("✅ feed.xml written")
 
-
-# 🧪 debug wrapper
 if __name__ == "__main__":
     try:
         main()
     except Exception as e:
-        print("❌ FATAL ERROR:", e)
+        print("ERROR:", e)
         traceback.print_exc()
         raise
