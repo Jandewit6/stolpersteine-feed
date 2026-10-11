@@ -1,5 +1,68 @@
 [
   {
+    "id": "0eded21eeae42c533a826febef22621d",
+    "title": "Die ersten Stolpersteine in Steinen erinnern an das Ehepaar Oppenheim - Badische Zeitung",
+    "link": "https://news.google.com/rss/articles/CBMiowFBVV95cUxOZzRmWTdVZ3cxckg0cEJMQmR1LUlhSWxEYlNRcTdvTGVnNld2T1BjWFRLbFpKSEVUM2ZnZWhQdHZNbGxnWFNQeUwydzhybmc0ZDlRMFZIbVQ0VGJBUVRBMnI1Wi1fTWFkNHVmazNyX1MxQXB2R3JxaUtaeDRMbHRQTktMRlJDSHpJYmNTV3J4bHV0YmF2TGh6ZHkzZEJacmNId1RR?oc=5",
+    "description": "Die ersten Stolpersteine in Steinen erinnern an das Ehepaar Oppenheim Badische Zeitung",
+    "pubDate": "2026-10-11T12:00:00",
+    "city": "Steinen",
+    "country": "Unknown"
+  },
+  {
+    "id": "d5e76a3f6e96d34cf3fc950dcecc72ac",
+    "title": "Stolpersteine: Heppenheimer Verein warnt vor gefährlichem Signal - Echo Online",
+    "link": "https://news.google.com/rss/articles/CBMizAFBVV95cUxNYU9qRk41SzB2MFAwa3EwN1FmVWFHbmJFRXJfR2FSZ0ltdGthLTIzMXgxWVNaaW1sZTItM29IeFlVcnpWdUlmZ2RmZWdvbmpmU19Ha1c2eWhubWM5OENPU1Y5VURFX3hxRnE3OWxVTWN6ZVROMHN4VnZWRjZyRU9DN0dqdXhqclJka3RtdzJNcUNIb1puTlVacUxyckkxMGI1WjhLSklvbmZUUmJ1clNjckt0bnJIdmN0dWZtYzJ3ZkhTb3ZjcmZRMDNSeFo?oc=5",
+    "description": "Stolpersteine: Heppenheimer Verein warnt vor gefährlichem Signal Echo Online",
+    "pubDate": "2026-10-11T11:30:00",
+    "city": "Stolpersteine:",
+    "country": "Unknown"
+  },
+  {
+    "id": "231241257de64cd13265948741c63ffe",
+    "title": "„Die Erinnerung lebendig halten“ - RP Online",
+    "link": "https://news.google.com/rss/articles/CBMisgFBVV95cUxNcUxKYWlmRjEwRERaNS1HT0pBYURXcWxFalpmaUxqN2ZFRGNCMDVSUHU2UEF3VHAxb1FjeVJJVWpLT0Ftbm1rNFNGRFVZMnRPbXphMVpvNVdUWmZfTnczeXQwOERVQUxvbkVxcWVrSDRNcFdpVUZ5TWpNQkw5S0lKT1RLNVplOU9kbmZJN3FYa2c1Wkk2YjFKbDJwQTJvdHhuZTlZaUU5OVEtaks2ZGwwNkh3?oc=5",
+    "description": "„Die Erinnerung lebendig halten“ RP Online",
+    "pubDate": "2026-10-11T07:35:00",
+    "city": "Erinnerung",
+    "country": "Unknown"
+  },
+  {
+    "id": "be2109daedbef931b0764dcf1d287c63",
+    "title": "KOHN ERVÍN",
+    "link": "https://stolpersteinecz.cz/en/kohn-ervin/",
+    "description": "Address: KAPLÍŘOVA 567/III, Beroun Born 13. 04.",
+    "pubDate": "2026-10-11T07:25:18",
+    "city": "ERVÍN",
+    "country": "Unknown"
+  },
+  {
+    "id": "74ffbb1e651e47de633ab4f7d46ce532",
+    "title": "WEIL RUDOLF",
+    "link": "https://stolpersteinecz.cz/en/weil-rudolf-2/",
+    "description": "Address: HUSOVO NÁMĚSTÍ 83/I, Beroun Born 27. 01.",
+    "pubDate": "2026-10-11T07:13:10",
+    "city": "RUDOLF",
+    "country": "Unknown"
+  },
+  {
+    "id": "12a9cbc4663dc7203a4533d184f408f7",
+    "title": "ROUBÍČKOVÁ OTÝLIE",
+    "link": "https://stolpersteinecz.cz/en/roubickova-otylie/",
+    "description": "Address: HUSOVO NÁMĚSTÍ 46/I, Beroun Born 12. 05.",
+    "pubDate": "2026-10-11T07:02:40",
+    "city": "ROUBÍČKOVÁ",
+    "country": "Unknown"
+  },
+  {
+    "id": "60e0282cdb1b2107b5509eafe8dca6a3",
+    "title": "ROUBÍČEK LUDVÍK",
+    "link": "https://stolpersteinecz.cz/en/roubicek-ludvik-2/",
+    "description": "Address: HUSOVO NÁMĚSTÍ 46/I, Beroun Born 01. 08.",
+    "pubDate": "2026-10-11T06:57:32",
+    "city": "ROUBÍČEK",
+    "country": "Unknown"
+  },
+  {
     "id": "f4ccd631563ac36c6b7742cd8c9d3788",
     "title": "Zwei weitere Stolpersteine für Verfolgte des NS-Regimes in Ellwangen verlegt - Schwäbische Post",
     "link": "https://news.google.com/rss/articles/CBMi2wFBVV95cUxOTXE2QzhZc2lzaDktLXVSQWdrMmRsR3AtRUFhRzc1YlhKQThpV3AyOUhfUW9nSlVlemlEMTdaNGpEaTU0RXpXM3Q3VExqVXJ2VG94ZjNpcHBsYzI0MWhLS2lCc2JPb0FnelJEMVRJZVdPenczVzB2RjBSS3MwdWlVamU3SVdXMjFFN3BUTldVV1g3SGpKS3NpSkpRN0RyazQ4Sk5sdFA0aG1KRHRHcVllbDBPeUsxWlBvYVVFdkxXU05tbTRVYzNXTlhEY3BUclVrVWgwQ19xRGdwNWs?oc=5",
@@ -815,6 +878,15 @@
     "link": "https://news.google.com/rss/articles/CBMi3AFBVV95cUxQYUFMTmMtb2M4azRwbTdzeC1udjljZC1rakpLdHhkaGUxZ0NDX1RNSGo0QW5NaUhOZDFlNnVfY3BQQUdIaG9fMExHMHNmRlhXc2FETEVwV2xwb2FZdU5ZaTUwV0xFRFNTUWhJZFpXWm5XanRENUdiVElIOHlOYmlrZFR6ekROSUhmVVIwQUhKdmhxaF9BLTFVdVlZNUNSVVRGbmIydXBkRWZQZHZMbWVaalJTRjAyQVhGLXdudVU0VXpzVGU3dUhnU25lOW5iUlI0dXRKWklydDFScG9q?oc=5",
     "description": "Stolpersteine - Nach Stolpersteinverbot - Mahngang in Heidenau - Politik - SZ.de SZ.de",
     "pubDate": "2026-10-04T13:42:13",
+    "city": "Heidenau",
+    "country": "Unknown"
+  },
+  {
+    "id": "5832987439a463dae8dba6d88c943c49",
+    "title": "Licensable picture: A Memorial Walk Along the Stolpersteine in Heidenau - Reuters Connect",
+    "link": "https://news.google.com/rss/articles/CBMi5gJBVV95cUxNaDlzaUlDWEV1WU5FZ1dVUkFzVHZkc19YcW92SzJfLWZNZ1ctSFgtWllPczhJQkg0MllqZm5vTDFZbEdfRkxYbjdjMFJINUk3czVMU3ZOUUhLd0ZTQkZtczFFc2ZELTR1X2hnZ0hhbEpNVU5NY1podWRhYmx0RVZLcGlZcHp2VkN5Y2tnMm56SkpHTVZnaTc0LXBaOVAyOWowZDZvUEFVVFYtQnlRZ2ZYdHpQbHBQbzB2THhzWVlOR0tzSTBnWGpSOG45TDhUd0VxdjBOOEJzcV9kLWY1dU11cWJnT0x3V1JYY1NTLXNIZFVsQ1RrT3Zzenp1eWk1TVNYNTh3Z1J6QktnUjdzaUNSODlROTlVZkRvREdCWlJLYXBaUmdsT0FHRS0wRXVwX2N1RnZFYkd3Ny1PV2M0Y2ROY2xjUlB4UWF5VnRtR2VDV0ZPU2hQVDlpQUttMndJNl9uRHAtNHJR?oc=5",
+    "description": "Licensable picture: A Memorial Walk Along the Stolpersteine in Heidenau Reuters Connect",
+    "pubDate": "2026-10-04T13:13:00",
     "city": "Heidenau",
     "country": "Unknown"
   },
@@ -16476,15 +16548,6 @@
     "description": "Neues Online-Portal für Coburg: Stolpersteine gibt es jetzt auch digital Neue Presse Coburg",
     "pubDate": "2025-10-13T07:00:00",
     "city": "Neues",
-    "country": "Unknown"
-  },
-  {
-    "id": "0afcadb32060c36c216e3e0caa1511c7",
-    "title": "Schmallenberg: Für diese Menschen sollen Stolpersteine gelegt werden - Westfalenpost",
-    "link": "https://news.google.com/rss/articles/CBMi0gFBVV95cUxNR08yNXJKMFlpbVR1SDNkbjFjYllUcWxTSU0zcUluZlFURFRaVFBOUm16RkJtNmdxR1hQN3ZqU0RUSjBfeVBob1lrdjFpcU5neWg3M21jSElHbGNHWEFOWHRkN3Z1YUdLeGVqMXFYOS1TRjBGOTdqZkdDNVpDUXRnWm5kaDU1enJRYVUtdHZucGpVcEF2SFVCZjFNZzJ5ajN2SWRUb2RHSGw2OUJxMkxxV0EyTzV6WmI5a3ZlbFpZOTdJblhlT2FWQ3NhcHY1cUdQbUE?oc=5",
-    "description": "Schmallenberg: Für diese Menschen sollen Stolpersteine gelegt werden Westfalenpost",
-    "pubDate": "2025-10-11T07:00:00",
-    "city": "Schmallenberg:",
     "country": "Unknown"
   }
 ]
